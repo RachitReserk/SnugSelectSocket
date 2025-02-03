@@ -1,44 +1,48 @@
 import { Server } from "socket.io";
-console.log("server started")
+import express from "express";
+import http from "http";
 
-const io = new Server({cors:"http://localhost:3000"});
+const app = express();
+const server = http.createServer(app);
 
-let onlineUsers = []
+console.log("server started");
 
-io.on("connection", (socket) => {
-
-
-  socket.on("addNewUser",(userId) => {
-    !onlineUsers.some(user=>user.userId === userId) &&
-    onlineUsers.push({
-      userId:userId,
-      socketId:socket.id
-    })
-    io.emit("getOnlineUsers",onlineUsers)
-  })
-
-  socket.on("sendMessage",(message)=>{
-    const user = onlineUsers.find(user => user.userId === message.receiver)
-    const sender = onlineUsers.find(user => user.userId === message.senderId)
-    if(user){
-      io.to(user.socketId).emit("getMessage",message)
-    }
-    if(user){
-      io.to(user.socketId).emit("getMessagePre",message)
-    }
-    if(sender){
-      io.to(sender.socketId).emit("getMessagePre",message)
-    }
-    
-  })
-
-  socket.on("disconnect",()=>{
-    onlineUsers = onlineUsers.filter(user => user.socketId !== socket.id)
-    io.emit("getOnlineUsers",onlineUsers)
-  })
-  
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST"]
+  }
 });
 
+let onlineUsers = [];
 
+io.on("connection", (socket) => {
+  console.log("A user connected");
 
-io.listen(5173);
+  socket.on("addNewUser", (userId) => {
+    if (!onlineUsers.some(user => user.userId === userId)) {
+      onlineUsers.push({ userId, socketId: socket.id });
+    }
+    io.emit("getOnlineUsers", onlineUsers);
+  });
+
+  socket.on("sendMessage", (message) => {
+    const user = onlineUsers.find(user => user.userId === message.receiver);
+    const sender = onlineUsers.find(user => user.userId === message.senderId);
+    if (user) {
+      io.to(user.socketId).emit("getMessage", message);
+      io.to(user.socketId).emit("getMessagePre", message);
+    }
+    if (sender) {
+      io.to(sender.socketId).emit("getMessagePre", message);
+    }
+  });
+
+  socket.on("disconnect", () => {
+    onlineUsers = onlineUsers.filter(user => user.socketId !== socket.id);
+    io.emit("getOnlineUsers", onlineUsers);
+  });
+});
+
+const PORT = process.env.PORT || 5173;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
