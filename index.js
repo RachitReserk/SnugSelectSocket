@@ -9,7 +9,7 @@ console.log("server started");
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: "https://snugselect.vercel.app",
     methods: ["GET", "POST"]
   }
 });
